@@ -10,8 +10,10 @@
    1. [Finding a pointer](#finding-a-pointer)
    2. [Implementing the icon color changer](#implementing-the-icon-color-changer)
 8. [Extending on this and implementing a background color changer](#extending-on-this-and-implementing-a-background-color-changer)
-9. [Video demo](#video-demo)
-10. [Conclusion](#conclusion)
+9. [Fixing things we broke](#fixing-things-we-broke)
+10. [Video demo](#video-demo)
+11. [Download and usage](#download-and-usage)
+12. [Conclusion](#conclusion)
 
 ---
 
@@ -279,18 +281,47 @@ To make it look more appealing I followed the same procedure as before and imple
 ![full health hud enemy](images/health-hud-full-foe.png)
 ![full health hud neutral](images/health-hud-full-neutral.png)
 
-You can check out the color script here: [scripts/colors.asm](scripts/colors.asm)
+You can check out the color manager script here: [scripts/colors.asm](scripts/colors.asm)
+
+## Fixing things we broke
+
+Implementing the feature in this manner caused two issues.  
+Upon loading the map, the red color that we may have set to a different value may still be that value, and not what it is supposed to be.  
+This means that everything that uses this color will use the incorrect color instead.
+
+To address this issue, I made a little script that only executes once on each map load and resets the red color to red.
+
+```asm
+mov [007279EC], FFDF2020   ; restore red color
+```
+
+See [scripts/color-reset.asm](scripts/color-reset.asm)
+
+The other thing that broke was the kill counter. It flashes in yellow when you kill an enemy and in **red** when you kill a teammate. You can see where this goes.
+
+This was also an easy fix as I just hardcoded the color value like this:
+
+```asm
+mov ecx,FFDF2020   ; hardcoded red color value for kill counter
+```
+
+See [scripts/kill-counter-fix.asm](scripts/kill-counter-fix.asm)
 
 ## Video demo
 
 https://user-images.githubusercontent.com/24588573/211107861-2f5668f6-14db-41e6-bca0-7b708f75fa2f.mp4
+
+## Download and usage
+
+You can download the cheat table [here](enhanced-health-hud.CT). You'll need Cheat Engine in order to use it.  
+Please not that this wont work for the Steam release. It was made for the 1.2 version of the game that was released in 2004/5.
 
 ## Conclusion
 
 This project was a lot of fun and I learned quite a lot during the process.  
 It took me several hours to put this all together but I am very happy with the outcome. It is even multiplayer compatible.
 
-One of the most challenging aspects for me was understanding how to use pointers in Assembly language, particularly when it came to adding the final offset. I hope that my explanation of this process is clear enough for anyone reading this to understand.
+One of the most challenging aspects for me was understanding how to use pointers in assembly, particularly when it came to adding the final offset. I hope that my explanation of this process is clear enough for anyone reading this to understand.
 
 Any feedback is very welcome. Especially if you find factual mistakes.  
 I am by no means a professional on this topic but I tried my best to describe it as accurate as possible.
