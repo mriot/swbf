@@ -10,6 +10,8 @@
    1. [Finding a pointer](#finding-a-pointer)
    2. [Implementing the icon color changer](#implementing-the-icon-color-changer)
 8. [Extending on this and implementing a background color changer](#extending-on-this-and-implementing-a-background-color-changer)
+9. [Video demo](#video-demo)
+10. [Conclusion](#conclusion)
 
 ---
 
