@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="42">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>845</ID>
+      <Description>"Teammate health hud 2.1"</Description>
+      <Options moHideChildren="1" moActivateChildrenAsWell="1" moDeactivateChildrenAsWell="1"/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>{
+ 2023-01-02
+ Master script for teammate health 2.0
+
+ Features:
+  - See health of all targets
+  - Different colors for enemies, mates and neutral objects
+}
+
+[ENABLE]
+[DISABLE]
+</AssemblerScript>
+      <CheatEntries>
+        <CheatEntry>
+          <ID>850</ID>
+          <Description>"Enable health view"</Description>
+          <VariableType>Auto Assembler Script</VariableType>
+          <AssemblerScript>// 2023-01-02
+// enable health view for all soldiers and destructible objects
+
+[ENABLE]
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+registersymbol(target)
+alloc(target, 4)
+
+newmem:
+// store target in custom symbol (we need it for the color manager script)
+push ebx
+mov ebx, [eax+30]
+mov [target], ebx
+pop ebx
+
+
+originalcode:
+// neutral = 0, teammate = 1, enemy = -1
+// the game is using "jnl" so by using 2 we should see health hud for all
+cmp [eax+30],2
+jnl Battlefront.exe+1980E0
+
+
+exit:
+jmp returnhere
+
+
+"Battlefront.exe"+1980C3:
+jmp newmem
+returnhere:
+
+
+[DISABLE]
+dealloc(newmem)
+dealloc(target)
+unregistersymbol(target)
+
+"Battlefront.exe"+1980C3:
+cmp [eax+30],ebx
+jnl Battlefront.exe+1980E0
+//Alt: db 39 58 30 7D 18
+</AssemblerScript>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>855</ID>
+          <Description>"Color management"</Description>
+          <VariableType>Auto Assembler Script</VariableType>
+          <AssemblerScript>// 2023-01-02
+// This script only changes the health-color when we're actually aiming at something.
+// This prevents immediate switching to another color when the crosshair is not aiming at something.
+// The injection point we're using should have us covered as it only executes
+// when there are information such as target health available to display.
+
+// NOTE: symbol "target" is defined in the "enable" script
+
+[ENABLE]
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+label(target_is_mate)
+label(target_is_neutral)
+label(target_is_enemy)
+label(update_hud_color)
+registersymbol(current_icon_color)
+registersymbol(current_icon_color_addr)
+registersymbol(current_background_color_addr)
+alloc(current_icon_color, 4)
+alloc(current_icon_color_addr, 4)
+alloc(current_background_color_addr, 4)
+
+// neutral = 0, teammate = 1, enemy = -1
+// default red = 20 20 DF FF (BGRA) -&gt; FFDF2020 (ARGB)
+
+newmem:
+cmp [target],01
+je target_is_mate
+cmp [target],-1
+je target_is_enemy
+jmp target_is_neutral
+
+
+target_is_mate:
+// adjust "red" color to green (ARGB)
+mov [007279EC], FF20DF20
+//push FF20DF20 // green
+push FFEEEEEE // blue-ish background just looks better imo
+jmp update_hud_color
+
+
+target_is_neutral:
+// adjust "red" color to blue-ish (ARGB)
+mov [007279EC], FF43A7F2
+push FF43A7F2
+jmp update_hud_color
+
+
+target_is_enemy:
+// restore "red" color (ARGB)
+mov [007279EC], FFDF2020
+push FFDF2020
+jmp update_hud_color
+
+
+// this changes the health-icon color to match the targets color theme
+update_hud_color:
+push eax
+push ecx
+xor eax,eax
+xor ecx,ecx
+
+// pointer to icon color
+mov eax,["Battlefront.exe"+0035D3E0]
+mov eax,[eax+C]
+mov eax,[eax+4C]
+mov eax,[eax+C]
+add eax,107C
+// since we want to USE the ADDRESS and *NOT* the VALUE stored at this address,
+// we have to use 'add' instead of 'mov'.
+// final pointer (eax) + final offset (107C) = address we wanna use
+
+mov ecx,[esp+8] // get color value from stack
+mov [eax],ecx // put color value into icon color addr
+
+mov [current_icon_color],ecx      // debug
+mov [current_icon_color_addr],eax // debug
+
+// pointer to background color
+mov eax,["Battlefront.exe"+0035D3E0]
+mov eax,[eax+8]
+mov eax,[eax+8]
+mov eax,[eax+144]
+add eax,125C
+
+mov [eax],ecx // put color value into background color addr
+
+mov [current_background_color_addr],eax // debug
+
+// cleanup
+pop ecx
+pop eax
+add esp,4 // remove our arg (color) from the stack
+jmp originalcode
+
+
+originalcode:
+mov ecx,[ecx+000000B8]
+
+
+exit:
+jmp returnhere
+
+
+"Battlefront.exe"+1980CF:
+jmp newmem
+nop
+returnhere:
+
+
+[DISABLE]
+dealloc(newmem)
+dealloc(current_icon_color)
+dealloc(current_icon_color_addr)
+unregistersymbol(current_icon_color)
+unregistersymbol(current_icon_color_addr)
+unregistersymbol(current_background_color_addr)
+
+"Battlefront.exe"+1980CF:
+mov ecx,[ecx+000000B8]
+//Alt: db 8B 89 B8 00 00 00
+</AssemblerScript>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>873</ID>
+          <Description>"Color reset on map load"</Description>
+          <VariableType>Auto Assembler Script</VariableType>
+          <AssemblerScript>// 2023-01-02
+// this script resets the "red" color on map load before it gets accessed to prevent
+// weird things like wrong colors for command posts etc.
+
+[ENABLE]
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+
+newmem:
+// restore "red" color
+mov [007279EC], FFDF2020 // ARGB
+
+
+originalcode:
+mov eax,[Battlefront.exe+3279EC]
+
+
+exit:
+jmp returnhere
+
+
+"Battlefront.exe"+197B85:
+jmp newmem
+returnhere:
+
+ 
+[DISABLE]
+dealloc(newmem)
+"Battlefront.exe"+197B85:
+mov eax,[Battlefront.exe+3279EC]
+//Alt: db A1 EC 79 72 00
+</AssemblerScript>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>919</ID>
+          <Description>"Kill counter color fix"</Description>
+          <VariableType>Auto Assembler Script</VariableType>
+          <AssemblerScript>// 2022-01-02
+// make negative kills flash in red
+
+[ENABLE]
+alloc(newmem,2048)
+label(returnhere)
+label(exit)
+
+newmem:
+mov ecx,FFDF2020 // red
+
+exit:
+jmp returnhere
+
+"Battlefront.exe"+1A405A:
+jmp newmem
+nop
+returnhere:
+
+
+[DISABLE]
+dealloc(newmem)
+"Battlefront.exe"+1A405A:
+mov ecx,[Battlefront.exe+3279EC]
+//Alt: db 8B 0D EC 79 72 00
+</AssemblerScript>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>852</ID>
+          <Description>"Debug ▼"</Description>
+          <Options moAlwaysHideChildren="1" moManualExpandCollapse="1"/>
+          <Color>808080</Color>
+          <GroupHeader>1</GroupHeader>
+          <CheatEntries>
+            <CheatEntry>
+              <ID>851</ID>
+              <Description>"target"</Description>
+              <DropDownList ReadOnly="1" DisplayValueAsItem="1">1: Friendly
+0: Neutral
+-1: Enemy
+</DropDownList>
+              <ShowAsSigned>1</ShowAsSigned>
+              <VariableType>Byte</VariableType>
+              <Address>target</Address>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>856</ID>
+              <Description>"get target health"</Description>
+              <Options moHideChildren="1"/>
+              <VariableType>Auto Assembler Script</VariableType>
+              <AssemblerScript>[ENABLE]
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+registersymbol(target_health)
+registersymbol(target_max_health)
+alloc(target_health, 4)
+alloc(target_max_health, 4)
+
+newmem:
+fst [target_health]
+fld dword ptr [eax+10]
+fstp [target_max_health]
+
+originalcode:
+mov eax,[esi+000013F8]
+
+
+exit:
+jmp returnhere
+
+
+"Battlefront.exe"+19817F:
+jmp newmem
+nop
+returnhere:
+
+
+[DISABLE]
+dealloc(newmem)
+dealloc(target_health)
+dealloc(target_max_health)
+unregistersymbol(target_health)
+unregistersymbol(target_max_health)
+
+"Battlefront.exe"+19817F:
+mov eax,[esi+000013F8]
+//Alt: db 8B 86 F8 13 00 00
+</AssemblerScript>
+              <CheatEntries>
+                <CheatEntry>
+                  <ID>848</ID>
+                  <Description>"target health"</Description>
+                  <ShowAsSigned>0</ShowAsSigned>
+                  <VariableType>Float</VariableType>
+                  <Address>target_health</Address>
+                </CheatEntry>
+                <CheatEntry>
+                  <ID>858</ID>
+                  <Description>"target max health"</Description>
+                  <ShowAsSigned>0</ShowAsSigned>
+                  <VariableType>Float</VariableType>
+                  <Address>target_max_health</Address>
+                </CheatEntry>
+              </CheatEntries>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>878</ID>
+              <Description>"current_icon_color"</Description>
+              <ShowAsHex>1</ShowAsHex>
+              <ShowAsSigned>0</ShowAsSigned>
+              <VariableType>Array of byte</VariableType>
+              <ByteLength>4</ByteLength>
+              <Address>current_icon_color</Address>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>879</ID>
+              <Description>"current_icon_color_addr"</Description>
+              <ShowAsHex>1</ShowAsHex>
+              <ShowAsSigned>0</ShowAsSigned>
+              <VariableType>4 Bytes</VariableType>
+              <Address>current_icon_color_addr</Address>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>903</ID>
+              <Description>"current_background_color_addr"</Description>
+              <ShowAsHex>1</ShowAsHex>
+              <ShowAsSigned>0</ShowAsSigned>
+              <VariableType>4 Bytes</VariableType>
+              <Address>current_background_color_addr</Address>
+            </CheatEntry>
+          </CheatEntries>
+        </CheatEntry>
+      </CheatEntries>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+</CheatTable>

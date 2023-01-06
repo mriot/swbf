@@ -1,5 +1,7 @@
 # Enhanced Health hud
 
+Info: This does only work on SWBF 1.2 from 2004/5. The Steam version is not supported.
+
 1. [Intro](#intro)
 2. [Investigation](#investigation)
 3. [Implementation](#implementation)
