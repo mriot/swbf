@@ -5,6 +5,11 @@
 3. [Implementation](#implementation)
 4. [Next steps? Yes!](#next-steps-yes)
 5. [The colors](#the-colors)
+6. [Switching the colors accordingly](#switching-the-colors-accordingly)
+7. [What about the icon?](#what-about-the-icon)
+   1. [Finding a pointer](#finding-a-pointer)
+   2. [Implementing the icon color changer](#implementing-the-icon-color-changer)
+8. [Extending on this and implementing a background color changer](#extending-on-this-and-implementing-a-background-color-changer)
 
 ---
 
@@ -23,6 +28,7 @@ But I can see the health of this bear:
 The start was pretty straight forward: Scanning with Cheat Engine for a byte value that is 1 when the hud is visible and 0 when its hidden.  
 After some time I had a memory address that matched. Now we need to find out, what code writes to this address.  
 I found the code that checks if we're aiming at an enemy (-1), a friend (1) or at nothing/object (0):  
+
 ```asm
 Battlefront.exe+1980C3 - 39 58 30 - cmp [eax+30],ebx
 ```
@@ -57,6 +63,7 @@ Battlefront.exe+1980CD - 74 11                 - je Battlefront.exe+1980E0      
 ```
 
 In our case, we could `nop` the second byte of the `jnl` instruction.
+
 ```asm
 Battlefront.exe+1980C3 - 83 78 30 02     - cmp dword ptr [eax+30],02      ; we replaced ebx with 2
 Battlefront.exe+1980C7 - 90              - nop                            ; this was the second byte of the jnl instruction
@@ -68,6 +75,7 @@ On the other hand, if we do code injection it really does not matter how we do i
 We allocate some memory in the context of the process where we can write our own code. We then use a `jmp` to unconditionally jump to our code, execute it and then jump back to the previous location where we continue with the normal game code.
 
 Original code:
+
 ```asm
 Battlefront.exe+1980C3 - 39 58 30       - cmp [eax+30],ebx
 Battlefront.exe+1980C6 - 7D 18          - jnl Battlefront.exe+1980E0
@@ -78,6 +86,7 @@ Battlefront.exe+1980CB - 3B CB          - cmp ecx,ebx
 We need 5 bytes for our `jmp` instruction. 3 from the `cmp` and 2 from the `jnl`.
 
 After code injection:
+
 ```asm
 Battlefront.exe+1980C3 - E9 387FBB01    - jmp 02150000       ; jump to our code
 Battlefront.exe+1980C8 - 8B 48 20       - mov ecx,[eax+20]   ; when our code is done, we return here
@@ -86,6 +95,7 @@ Battlefront.exe+1980CB - 3B CB          - cmp ecx,ebx
 
 Of course we need to preserve the original code we replaced with our jump instruction.
 This is what it looks like in our allocted memory:
+
 ```asm
 02150000 - 83 78 30 02    - cmp [eax+30],02              ; "preserved" opcode with the first 3 bytes (we changed 'ebx' to '2')
 02150004 - 0F8D D68044FE  - jnl Battlefront.exe+1980E0   ; preserved opcode with last 2 bytes (5 bytes total we needed for the jump)
@@ -164,6 +174,7 @@ This time it was not a static address. Instead I had to find a pointer.
 There are many ways to find pointers but a basic approach is illustrated below:
 
 This is the instruction that copies the color value stored in `eax` to the offset `107C` of the address that `esi` is holding.
+
 ```asm
 Battlefront.exe+197BEE - 89 86 7C100000  -  mov [esi+0000107C],eax
 ```
@@ -192,9 +203,10 @@ If they still point to the correct address (which is probably no longer `65D50CC
 
 For this we extend the color manager script. Here's the important part:
 
+How we can use the pointer for the icon color in asm:
+
 ```asm
-; pointer to icon color
-; Load the value stored at the memory address "Battlefront.exe"+0035D3E0 into eax
+; Load the value (base address) stored at the memory address "Battlefront.exe"+0035D3E0 into eax
 mov eax,["Battlefront.exe"+0035D3E0]
 
 ; Load the value stored at the memory address stored in eax + C into eax
@@ -207,10 +219,78 @@ mov eax,[eax+4C]
 mov eax,[eax+C]
 
 ; Add the value 107C to the address stored in eax and store the result in eax
-; This calculates the final memory address that the programmer wants to use
 add eax,107C
 ```
 
+> The final `add` instruction is used to calculate the final memory address by adding an offset to the address stored in the eax register. By using `add` instead of `mov`, the **value of the address** stored in `eax` is preserved, rather than being overwritten with the **value stored at that address**.
+
+I put this code into a custom label so that I don't have to repeat the code for each color (enemy, mate, neutral).
+
+A barebone example would look like this:
+
+Aiming at a teammate.
+
+```asm
+target_is_mate:
+mov [007279EC], FF20DF20    ; adjust "red" color to green (ARGB)
+push FFEEEEEE               ; push blue-ish color value for the icon onto the stack
+jmp update_hud_color        ; jump to our label that updates the icon color
+```
+
+```asm
+update_hud_color:
+push eax            ; preserve the current values by pushing them on the stack
+push ecx            ; we want to restore them when we're done
+xor eax,eax         ; set them to 0 just to be safe
+xor ecx,ecx
+
+; pointer to icon color
+mov eax,["Battlefront.exe"+0035D3E0]
+mov eax,[eax+C]
+mov eax,[eax+4C]
+mov eax,[eax+C]
+add eax,107C
+
+; get color value from stack (we pushed it onto the stack before jumping here)
+; BUT NOTE - we have pushed two more values onto the stack! eax and ecx. Each 4 bytes.
+mov ecx,[esp+8]   ; our color value is now at offset 8 on the stack
+mov [eax],ecx     ; put color value into icon color addr
+
+; cleanup
+pop ecx           ; put the preserved value back into ecx, clearing the first 4 bytes of the stack
+pop eax           ; put the preserved value back into eax, again clearing the now first bytes of the stack
+add esp,4         ; Our color value is now at offset 0 on the stack. Remove it from the stack
+jmp originalcode
+```
+
+The stack may seem complex, but it's important to remember that it operates using a Last In, First Out (LIFO) principle. This means that the last item placed on the stack is the first one that needs to be removed.
+
+Blue for objects, white for teammates and red for enemies  
 ![blue icon](images/target-health-icon-blue.png)
+![blue icon](images/target-health-icon-white.png)
+
+## Extending on this and implementing a background color changer
+
+To make it look more appealing I followed the same procedure as before and implemented a color changer for the background color of the health hud.
+
+![full health hud mate](images/health-hud-full-mate.png)
+![full health hud enemy](images/health-hud-full-foe.png)
+![full health hud neutral](images/health-hud-full-neutral.png)
 
 You can check out the color script here: [scripts/colors.asm](scripts/colors.asm)
+
+## Video demo
+
+https://user-images.githubusercontent.com/24588573/211107861-2f5668f6-14db-41e6-bca0-7b708f75fa2f.mp4
+
+## Conclusion
+
+This project was a lot of fun and I learned quite a lot during the process.  
+It took me several hours to put this all together but I am very happy with the outcome. It is even multiplayer compatible.
+
+One of the most challenging aspects for me was understanding how to use pointers in Assembly language, particularly when it came to adding the final offset. I hope that my explanation of this process is clear enough for anyone reading this to understand.
+
+Any feedback is very welcome. Especially if you find factual mistakes.  
+I am by no means a professional on this topic but I tried my best to describe it as accurate as possible.
+
+Discord: mriot#2627
