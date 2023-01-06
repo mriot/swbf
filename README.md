@@ -1,11 +1,10 @@
-# Star Wars Battlefront (2004)
+# Original Star Wars Battlefront modding
 
-I started modding this game in 2011 and still occasionally come back to further explore the internal workings of this game.  
+I started modding in 2011 and still occasionally come back to further explore the internal workings of this game.  
 This repository contains a collection of my past work.
 
-![header](https://user-images.githubusercontent.com/24588573/210275199-f264dc65-7899-41ce-9e50-eab38e8e0858.jpg)
-
-- Wireframe ATATs
-- Cheat Table stuff
-- SWBFadmin
-- 
+- [Enhanced Health hud](enhanced-health-hud/) ✅
+- [Jub Jub Easteregg Research]() 🚫
+- [Wireframe ATATs]() 🚫
+- [Cheat Table]() 🚫
+- [SWBFadmin]() 🚫
