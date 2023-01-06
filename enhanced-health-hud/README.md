@@ -1,4 +1,4 @@
-# Enhanced Health hud
+# Enhanced Health Hud
 
 1. [Intro](#intro)
 2. [Investigation](#investigation)
