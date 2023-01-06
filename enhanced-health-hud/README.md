@@ -1,4 +1,4 @@
-# Enhanced Health hud
+# Enhanced Health Hud
 
 Info: This does only work on SWBF 1.2 from 2004/5. The Steam version is not supported.
 
