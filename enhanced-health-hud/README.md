@@ -164,7 +164,9 @@ This time it was not a static address. Instead I had to find a pointer.
 There are many ways to find pointers but a basic approach is illustrated below:
 
 This is the instruction that copies the color value stored in `eax` to the offset `107C` of the address that `esi` is holding.
-<pre><code>Battlefront.exe+197BEE - 89 86 7C100000  -  mov [esi+0000107C],eax</code></pre>
+```asm
+Battlefront.exe+197BEE - 89 86 7C100000  -  mov [esi+0000107C],eax
+```
 
 Here's what the relevant register values look like:  
 `eax` = FFDF2020 -> This is the red color hex value (alpha, red, green, blue)  
