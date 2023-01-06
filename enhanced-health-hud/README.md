@@ -1,7 +1,5 @@
 # Enhanced Health hud
 
-Info: This does only work on SWBF 1.2 from 2004/5. The Steam version is not supported.
-
 1. [Intro](#intro)
 2. [Investigation](#investigation)
 3. [Implementation](#implementation)
@@ -117,7 +115,7 @@ As for most things, we have again multiple options here. E.g.:
 I took the second option because I just could not get the first one to work properly.  
 Colors were weird, random game crashes and the color switched immediately to gray when not aiming at something which is a problem because the hud fades out slowly.
 
-So instead I injected the color management code where it gets only executed when there is target health data available. Then we update the red color memory address with for example a green color value when aiming at a mate.  
+So instead I injected the color management code where it gets executed only when there is target health data available. Then we update the red color memory address with for example a green color value when aiming at a mate.  
 So basically the color stays at whatever current value it has until we aim at something that provides health data.
 
 <pre><code>cmp [target],01
@@ -133,5 +131,73 @@ We then just set the desired color. For example:
 mov [007279EC], FF20DF20    ; adjust "red" color to green (ARGB)
 jmp back
 </code></pre>
+
+And there we go:  
+![mates are green](images/green-health-bar.png)
+
+And for neutral objects we have a blue color:
+![blue is neutral](images/blue-health-bar.png)
+
+## What about the icon?
+
+With Cheat Engine it was pretty easy to find out what else accesses the red color.  
+I found the instruction responsible for coloring the icon but it only executes once on map load.
+It loads the color value into a different memory location that we can then manipulate.
+
+This time it was not a static address. Instead I had to find a pointer.
+
+> A pointer is a type of variable that stores the address of another variable in memory. It allows a program to indirectly access and manipulate the value stored at that memory location. Sometimes, a pointer stores the base address of an object, and offsets can be used to access specific properties within the object by adding the offset to the base address.
+
+### Finding a pointer
+
+There are many ways to find pointers but a basic approach is illustrated below:
+
+This is the instruction that copies the color value stored in `eax` to the offset `107C` of the address that `esi` is holding.
+<pre><code>Battlefront.exe+197BEE - 89 86 7C100000  -  mov [esi+0000107C],eax</code></pre>
+
+Here's what the relevant register values look like:  
+`eax` = FFDF2020 -> This is the red color hex value (alpha, red, green, blue)  
+`esi` = 065D4050 -> This is the base address to the hud element probably
+
+When we add the offset `107C` to the value of `esi` we get `65D50CC` which is in fact the current address where the color of the icon is stored as you can see in this screenshot from Cheat Engine:  
+![hud icon color addr](images/target-health-icon-addr.png)
+
+Moving on, the part we should remeber is the offset value `107C`.  
+Cheat Engine has a feature called _Pointerscan_. Right click on the address and select "Pointer scan for this address".
+
+![pointerscan settings](images/pointerscan.png)
+
+Note that we already know the last offset the pointer needs to have! `107C`.  
+We can add it at "pointers must end with specific offset".
+
+After pressing OK, Cheat Engine will scan for us. This may take a moment.  
+We are then hopefully presented with a list of several potential pointers.  
+To verify if they are legit, we save them to our addresslist and restart the game.  
+If they still point to the correct address (which is probably no longer `65D50CC`) and show the correct value, we have found one or more pointers!
+
+### Implementing the icon color changer
+
+For this we extend the color manager script. Here's the important part:
+
+```asm
+; pointer to icon color
+; Load the value stored at the memory address "Battlefront.exe"+0035D3E0 into eax
+mov eax,["Battlefront.exe"+0035D3E0]
+
+; Load the value stored at the memory address stored in eax + C into eax
+mov eax,[eax+C]
+
+; Load the value stored at the memory address stored in eax + 4C into eax
+mov eax,[eax+4C]
+
+; Load the value stored at the memory address stored in eax + C into eax
+mov eax,[eax+C]
+
+; Add the value 107C to the address stored in eax and store the result in eax
+; This calculates the final memory address that the programmer wants to use
+add eax,107C
+```
+
+![blue icon](images/target-health-icon-blue.png)
 
 You can check out the color script here: [scripts/colors.asm](scripts/colors.asm)
