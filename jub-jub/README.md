@@ -36,6 +36,8 @@ Immediately questions came to my mind like: Is this intentionally? A bug maybe? 
 
 ## Facts about the easter egg
 
+> "Jub Jub" ewoks saying bla bla bla
+
 - The name of the profile has to be exactly: `Jub Jub`
 - It only works in singleplayer. Even as the server host, the soldier models are normal
 - It still works even with the Steam-Version of the game
@@ -88,14 +90,44 @@ It could have been possible that the game sets a certain byte within the file up
 
 Moving on I decided to scan the memory of the game and search for a flag, a byte that indicates whether the easter egg is enabled.
 
-...
+As it turned out, that was pretty easy to find. I checked which opcodes access this address.
 
 ## The check
 
-![disassembler](images/Jub_Jub_research_pt1.png)
-...
+I found this code:  
+![set flag code](images/hash-compare-set-flag-no-comments.png)
+
+First `eax` is pushed onto the stack followed by a `call` instruction. This usually indicates, that the value of `eax` is used within that function.  
+
+Lets have a quick look into that function and set a breakpoint to find out what the value of `eax` is.
+![value of eax arg](images/inside-hash-func-eax-arg.png)
+
+This looks like a memory address!
+Lets check out what the value of that address is:
+![profile name in memory](images/profile-name-in-memory.png)
+
+Awesome, we found the profile name address!  
+We will dive deeper into that function in the next step but for now we can assume that that this function generates the hash for our profile name and that the result is stored in the `EAX` register.
+
+Returning to the previous code, after the `call` instruction, we can see a hardcoded compare, that compares our hash in `EAX` with a hexadecimal number `C6961FF7`. Interesting.  
+To find out if this magic number is the hash for "Jub Jub", I placed a breakpoint on that compare and picked the "Jub Jub" profile.
+
+![eax contains hash](images/eax-contains-name-hash-no-comments.png)
+
+Nice! They match! Awesome :)  
+For testing purposes my main profiles hash: `EAX: 3520CC84`
+
+Following the rest of the instructions we can see that apparently, the easter egg will be enabled for every profile for a brief moment before it is disabled on non "Jub Jub" profiles.  
+The byte is unconditionally set to 1 directly after the compare and the next jump is only taken, when the hashes match essentially skipping deactivating the easter egg.
 
 ## The hashing function
+
+I stepped through the function and noticed that `EDX` is assigned the same value that `EAX` is holding.  
+Only if `EDX` is 0, which will probably only happen if the profile does not have a name, `EAX` gets zeroed with `xor eax,eax`. I guess that is part of some error handling.
+
+<img src="images/x86-registers.png" width="500px" />
+
+Image source: <https://www.cs.virginia.edu/~evans/cs216/guides/x86.html#instructions>
 
 - Hash algorithm: [Fowler–Noll–Vo](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#The_hash)
 ...
@@ -111,6 +143,10 @@ Moving on I decided to scan the memory of the game and search for a flag, a byte
 
 ...
 
+## Game code that makes the easter egg have an effect
+
+![disassembler](images/Jub_Jub_research_pt1.png)
+
 ## Experiments
 
 videos/removing-spine-bone.mp4
@@ -118,6 +154,9 @@ videos/removing-spine-bone.mp4
 
 ## Scripts and Cheat Table
 
+Instant model swapper?
+
+Disable profile integrity check (the game will also fix the profile with any valid modification)
 ...
 
 ## Conclusion
