@@ -17,12 +17,13 @@ Star Wars Battlefront (2004 / Classic) easter egg research.
 6. [The check](#the-check)
 7. [The hashing function](#the-hashing-function)
    1. [Implementation](#implementation)
-8. [Experiments](#experiments)
-9. [Scripts and Cheat Table](#scripts-and-cheat-table)
-10. [Conclusion](#conclusion)
-11. [Resources](#resources)
-12. [Thanks](#thanks)
-13. [Disclaimer](#disclaimer)
+8. [Game code that makes the easter egg have an effect](#game-code-that-makes-the-easter-egg-have-an-effect)
+9. [Experiments](#experiments)
+10. [Scripts and Cheat Table](#scripts-and-cheat-table)
+11. [Conclusion](#conclusion)
+12. [Resources](#resources)
+13. [Thanks](#thanks)
+14. [Disclaimer](#disclaimer)
 
 ---
 
