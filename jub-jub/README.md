@@ -194,7 +194,7 @@ In memory that looks like: ![name in memory](images/name-in-memory-detail.png)
 After the second `je` instruction we see `mov eax,811C9DC5`. This hardcoded value in the context of a hashing algorithm is known as the "offset basis", and is used as the starting point for the hash calculation.
 
 Further down we can find `69 C0 93010001 - imul eax,eax,Battlefront.exe+C00193` and this gave me a hard time.  
-I was not able to understand the third operants but luckily there are helpful people on the internet as you can read in my [question on StackOverflow](https://stackoverflow.com/questions/62778926/third-operand-of-imul-instruction-is-a-memory-address-what-was-its-original-val). Thanks again CherryDT!
+I was not able to understand the third operant but luckily there are helpful people on the internet as you can read in my [question on StackOverflow](https://stackoverflow.com/questions/62778926/third-operand-of-imul-instruction-is-a-memory-address-what-was-its-original-val). Thanks again CherryDT!
 
 <details>
    <summary>👀 Screenshot of that question and answer</summary>
@@ -270,12 +270,40 @@ namespace BattlefrontNameHash {
 
 #### In JavaScript
 
-Just for fun I made a little Svelte app that lets you test the algorithm online.  
+Just for fun I made a little Webapp with Svelte that lets you test the algorithm online.  
 <link/to/website>
 
 ## Game code that makes the easter egg have an effect
 
+Now we know how the game determines wether the easter egg is active but how does it work?  
+What does the code look like, that actually applies the easter egg?
+
+To find the responsible code, I tracked which opcodes access the easter egg's status address.  
+I found this section where a lot is going on so I added some comments:
+
 ![disassembler](images/Jub_Jub_research_pt1.png)
+
+Ok, nothing too special. A simple check whether the easter egg is enabled.  
+The last blue box is very interesting though.
+
+`tat_inf_jawa`? Is that the model that's being used?  
+I was confused since the community (and I) always assumed that it would use the [Ewok](https://starwars.fandom.com/wiki/Ewok) model.  
+And another question arised. We can use this easter egg on all maps and not only on those which load the required models. How does that work?
+
+Maybe the model is hardcoded into the game executable?
+
+To test this, I took a look into the .exe with a hex editor.  
+![tat_inf_jawa in game exe](images/tat_inf_jawa-hexeditor.png)
+
+And indeed, the name is there apparently along with some bone information that is used to rig the soldiers?  
+To find out if more models are available in the .exe I searched for `_inf_` and found those gentlemen:
+
+![heroes and villians](images/other-models-in-exe.png)
+
+Though none of them had similar bone information like our jawa model.
+
+Nevertheless I tried to replace the jawa model with some of the others we found but no luck.  
+No matter which model I supplied, it always reverted to the normal model. I guess there is some errorhandling in place that just skips the rigging if the necessary bones are missing.
 
 ## Experiments
 
@@ -302,9 +330,15 @@ In conclusion, it was honestly surprising to me that the reversed FNV-1a algorit
 Overall, this project was not only enjoyable but I learned a lot, too.  
 I'm also super happy I was able to successfully lift the mystery surrounding that easter egg!
 
-Feedback is always welcome, and I appreciate any corrections or suggestions for improvement. Although I'm not a professional on this topic, I've done my best to present the information accurately and clearly. Thank you for reading!
+In the future, I will utilize tools such as [Ghidra](https://github.com/NationalSecurityAgency/ghidra), [Binary Ninja](https://binary.ninja/), or [IDA Pro](https://hex-rays.com/ida-pro/) for reversing functions. These tools provide a more user-friendly and efficient method for analyzing code, making the process simpler and more straightforward.
 
-Discord: mriot#2627
+<details>
+    <summary>👀 For example the decompiled version of the hashing algorithm by Ghidra</summary>
+
+![ghidra](images/decompiled-algo-ghidra.png)
+</details>
+
+Feedback is always welcome, and I appreciate any corrections or suggestions for improvement. Although I'm not a professional on this topic, I've done my best to present the information accurately and clearly. Thank you for reading!
 
 ## Resources
 
@@ -318,8 +352,7 @@ Discord: mriot#2627
 - Pandemic for SWBF
 - DarkByte for Cheat Engine
 - CherryDT for answering my StackOverflow question
-- Psych0fred for your invaluable contributions to the modding community
-- Markdeagle
+- Psych0fred for his invaluable contributions to the modding community
 - Jay
 
 ---
