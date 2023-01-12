@@ -20,8 +20,8 @@ Star Wars Battlefront (2004 / Classic) easter egg research.
    2. [A short lesson on x86 registers](#a-short-lesson-on-x86-registers)
    3. [Other interesting things in this algorithm](#other-interesting-things-in-this-algorithm)
    4. [Implementation](#implementation)
-8. [Game code that makes the easter egg have an effect](#game-code-that-makes-the-easter-egg-have-an-effect)
-9. [Experiments](#experiments)
+8. [The code that makes the easter egg have an effect](#the-code-that-makes-the-easter-egg-have-an-effect)
+9. [Wrapping up](#wrapping-up)
 10. [Scripts and Cheat Table](#scripts-and-cheat-table)
 11. [Conclusion](#conclusion)
 12. [Resources](#resources)
@@ -273,7 +273,7 @@ namespace BattlefrontNameHash {
 Just for fun I made a little Webapp with Svelte that lets you test the algorithm online.  
 <link/to/website>
 
-## Game code that makes the easter egg have an effect
+## The code that makes the easter egg have an effect
 
 Now we know how the game determines wether the easter egg is active but how does it work?  
 What does the code look like, that actually applies the easter egg?
@@ -283,60 +283,68 @@ I found this section where a lot is going on so I added some comments:
 
 ![disassembler](images/Jub_Jub_research_pt1.png)
 
-Ok, nothing too special. A simple check whether the easter egg is enabled.  
-The last blue box is very interesting though.
+The last blue box is very interesting.
 
 `tat_inf_jawa`? Is that the model that's being used?  
 I was confused since the community (and I) always assumed that it would use the [Ewok](https://starwars.fandom.com/wiki/Ewok) model.  
 And another question arised. We can use this easter egg on all maps and not only on those which load the required models. How does that work?
 
-Maybe the model is hardcoded into the game executable?
+Using modding tools, I switched the model of the Jawa with the model of a Tusken raider:
+![tusken](images/swapped-model-with-tusken.png)
+
+Except for having baby tusken now, it didn't change anything at all. That means, the game is not using the actual Jawa model, that is stored (like most other models), in a .lvl file.
+
+Well, maybe the model is "hardcoded" into the game executable? That would also explain why it works on every map.
 
 To test this, I took a look into the .exe with a hex editor.  
 ![tat_inf_jawa in game exe](images/tat_inf_jawa-hexeditor.png)
 
-And indeed, the name is there apparently along with some bone information that is used to rig the soldiers?  
+And indeed, the name of the model is there. Apparently along with some bone information that is used to rig the soldiers?  
 To find out if more models are available in the .exe I searched for `_inf_` and found those gentlemen:
 
 ![heroes and villians](images/other-models-in-exe.png)
 
-Though none of them had similar bone information like our jawa model.
+Though none of them had similar bone information like our jawa model assiciated with them in the executable.
 
-Nevertheless I tried to replace the jawa model with some of the others we found but no luck.  
-No matter which model I supplied, it always reverted to the normal model. I guess there is some errorhandling in place that just skips the rigging if the necessary bones are missing.
+Nevertheless I tried to replace the jawa model with something else.  
+No matter what I supplied, it always reverted to the normal model. I guess there is some errorhandling in place that just skips teverything if the necessary bones are missing.
 
-## Experiments
+Speaking of rigging. This is what happens if you remove the spine bone:
 
-videos/removing-spine-bone.mp4
+<video src="videos/removing-spine-bone.mp4" controls="controls" style="max-width: 730px;"></video>
 
-char boon root is adjusted as they would just stick in the ground otherwise
-tat_inf_jawa along with bone information is present as static address.
-other statics are only humanoid like vader, luke etc
-changing tat_inf_jawa to all_inf_lukeskywalker seems to be working
-maybe we can swap the model using mods
-it seems the geometry is hardcoded and not actually using the model found in the side.lvl files
+Another interesting fact, they have adjusted the vertical character position, otherwise they would stick in the ground or hover in the air like this:
+
+![char pos](images/adjusted-char-pos-from-0.6-to-3.0.png)
+I set the position from 0.60 which is applied for Jub Jub to 3.0.
+
+## Wrapping up
+
+1. The game reads in the selected profile
+2. Grabs the name
+3. Generates the FNV hash
+4. Compares it against the hash value of "Jub Jub" (which is 0xC6961FF7)
+5. Sets a byte to 1 if the name is Jub Jub or a 0 if it is something else
+6. While loading a singleplayer map, the games checks this byte
+7. If it is 1, it will replace the soldier model with a Jawa model which is stored inside the executable
+
+To be honest, I am not entirely sure that its the full model in the executable. I think it is more about the bone information. Though I have no clue why it contains the name of the Jawa model `tat_inf_jawa`.
 
 ## Scripts and Cheat Table
 
-- Instant model swapper?
+I have attached some scripts packed into a cheat table that I found useful while exploring.  
+> Please note that these will only work for the 1.2 game version from 2005 and not for the Steam version.
+
 - Disable profile integrity check (the game will also fix the profile with any valid modification)
 - Enable easter egg for any profile
   - flag address
 
 ## Conclusion
 
-In conclusion, it was honestly surprising to me that the reversed FNV-1a algorithm actually worked as expected 😁. The process was challenging as it was my first time trying something like this.
+In conclusion, it was a little surprising to me that the reversed FNV-1a algorithm actually worked as expected 😁. The process was pretty challenging for me as it was my first time trying something like this.
 
 Overall, this project was not only enjoyable but I learned a lot, too.  
-I'm also super happy I was able to successfully lift the mystery surrounding that easter egg!
-
-In the future, I will utilize tools such as [Ghidra](https://github.com/NationalSecurityAgency/ghidra), [Binary Ninja](https://binary.ninja/), or [IDA Pro](https://hex-rays.com/ida-pro/) for reversing functions. These tools provide a more user-friendly and efficient method for analyzing code, making the process simpler and more straightforward.
-
-<details>
-    <summary>👀 For example the decompiled version of the hashing algorithm by Ghidra</summary>
-
-![ghidra](images/decompiled-algo-ghidra.png)
-</details>
+I'm also super happy I was able to successfully lift the mystery surrounding that easter egg! Although I wish I had some more in depth understanding on the actual activation of the easter egg and where the model information is coming from.
 
 Feedback is always welcome, and I appreciate any corrections or suggestions for improvement. Although I'm not a professional on this topic, I've done my best to present the information accurately and clearly. Thank you for reading!
 
@@ -344,8 +352,8 @@ Feedback is always welcome, and I appreciate any corrections or suggestions for 
 
 - [Cheat Engine](https://www.cheatengine.org/)
 - [HxD Hex Editor](https://mh-nexus.de/en/hxd/)
-- x86 Assembly: <https://www.cs.yale.edu/flint/cs421/papers/x86-asm/asm.html>
-- <https://stackoverflow.com/questions/62778926/third-operand-of-imul-instruction-is-a-memory-address-what-was-its-original-val>
+- [x86 Assembly Guide](https://www.cs.yale.edu/flint/cs421/papers/x86-asm/asm.html)
+- [My StackOverflow question](https://stackoverflow.com/questions/62778926/third-operand-of-imul-instruction-is-a-memory-address-what-was-its-original-val)
 
 ## Thanks
 
@@ -354,11 +362,3 @@ Feedback is always welcome, and I appreciate any corrections or suggestions for 
 - CherryDT for answering my StackOverflow question
 - Psych0fred for his invaluable contributions to the modding community
 - Jay
-
----
-
-spine length?
-Battlefront.exe+132766 - 68 E47A6A00           - push Battlefront.exe+2A7AE4 { ("bone_a_spine") }
-Battlefront.exe+13276B - C7 07 FFFFFFFF        - mov [edi],FFFFFFFF { -1 }
-Battlefront.exe+132771 - C7 47 04 FFFFFFFF     - mov [edi+04],FFFFFFFF { -1 }
-Battlefront.exe+132778 - E8 03EAECFF           - call Battlefront.exe+1180
