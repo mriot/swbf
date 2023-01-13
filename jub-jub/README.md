@@ -311,7 +311,10 @@ No matter what I supplied, it always reverted to the normal model. I guess there
 
 Speaking of rigging. This is what happens if you remove the spine bone:
 
-<video src="videos/removing-spine-bone.mp4" controls="controls" style="max-width: 730px;"></video>
+![no spine](images/no-spine.png)
+
+[Here's a video](https://onedrive.live.com/embed?cid=5279059A682EC257&resid=5279059A682EC257%2175251&authkey=AGo1z1q_BvuOq8E)
+
 
 Another interesting fact, they have adjusted the vertical character position, otherwise they would stick in the ground or hover in the air like this:
 
