@@ -364,4 +364,4 @@ Feedback is always welcome, and I appreciate any corrections or suggestions for 
 - DarkByte for Cheat Engine
 - CherryDT for answering my StackOverflow question
 - Psych0fred for his invaluable contributions to the modding community
-- Jay
+- [Jeremy](https://github.com/celltec/)
