@@ -5,6 +5,6 @@ This repository contains a collection of my past work.
 
 - [Enhanced Health hud](enhanced-health-hud/)
 - [Jub Jub Easteregg Research](jub-jub/)
-- [Wireframe ATATs]() 🚫
-- [Cheat Table]() 🚫
+- [Wireframe Mods]() 🚫
+- [Cheat Tables]() 🚫
 - [SWBFadmin]() 🚫
