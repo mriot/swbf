@@ -268,11 +268,6 @@ namespace BattlefrontNameHash {
 
 </details>
 
-#### In JavaScript
-
-Just for fun I made a little Webapp with Svelte that lets you test the algorithm online.  
-<link/to/website>
-
 ## The code that makes the easter egg have an effect
 
 Now we know how the game determines wether the easter egg is active but how does it work?  
